@@ -33,6 +33,8 @@ static char ja_kvoContext;
     CGPoint _locationBeforePan;
 }
 
+@property (nonatomic, strong) NSMutableArray *containerViewControllerClasses;
+
 @property (nonatomic, readwrite) JASidePanelState state;
 @property (nonatomic, weak) UIViewController *visiblePanel;
 @property (nonatomic, strong) UIView *tapView;
@@ -49,6 +51,7 @@ static char ja_kvoContext;
 @synthesize leftPanelContainer = _leftPanelContainer;
 @synthesize rightPanelContainer = _rightPanelContainer;
 @synthesize centerPanelContainer = _centerPanelContainer;
+@synthesize containerViewControllerClasses = _containerViewControllerClasses;
 @synthesize tapView = _tapView;
 @synthesize style = _style;
 @synthesize state = _state;
@@ -595,6 +598,15 @@ static char ja_kvoContext;
     [self _showCenterPanel:YES bounce:NO];
 }
 
+#pragma mark - Internal Properties
+
+- (NSMutableArray *)containerViewControllerClasses {
+    if (!_containerViewControllerClasses) {
+        _containerViewControllerClasses = [[NSMutableArray alloc] init];
+    }
+    return _containerViewControllerClasses;
+}
+
 #pragma mark - Internal Methods
 
 - (CGFloat)_correctMovement:(CGFloat)movement {
@@ -648,7 +660,21 @@ static char ja_kvoContext;
     } else if ([root isKindOfClass:[UITabBarController class]]) {
         UITabBarController *tab = (UITabBarController *)root;
         return [self _isOnTopLevelViewController:tab.selectedViewController];
+    } else if ([self.containerViewControllerClasses count]) {
+        for (NSString *classString in self.containerViewControllerClasses) {
+            Class classFromString = NSClassFromString(classString);
+            if ([classFromString instancesRespondToSelector:@selector(rootViewController)]) {
+                if ([root isKindOfClass:classFromString]) {
+                    if ([root respondsToSelector:@selector(topViewController)] && [root respondsToSelector:@selector(rootViewController)]) {
+                        return ([[root performSelector:@selector(topViewController)] isEqual:[root performSelector:@selector(rootViewController)]]);
+                    } else if ([root respondsToSelector:@selector(viewControllers)]) {
+                        return (NSUInteger)[[root performSelector:@selector(viewControllers)] performSelector:@selector(count)] == 1;
+                    }
+                }
+            }
+        }
     }
+    
     return root != nil;
 }
 
@@ -950,6 +976,16 @@ static char ja_kvoContext;
 }
 
 #pragma mark - Public Methods
+
+- (void)registerContainerViewControllerClass:(Class)containerViewControllerClass {
+    NSString *classString = NSStringFromClass(containerViewControllerClass);
+    [self.containerViewControllerClasses addObject:classString];
+}
+
+- (void)unregisterContainerViewControllerClass:(Class)containerViewControllerClass {
+    NSString *classString = NSStringFromClass(containerViewControllerClass);
+    [self.containerViewControllerClasses removeObject:classString];
+}
 
 - (UIBarButtonItem *)leftButtonForCenterPanel {
     return [[UIBarButtonItem alloc] initWithImage:[[self class] defaultImage] style:UIBarButtonItemStylePlain target:self action:@selector(toggleLeftPanel:)];

@@ -45,6 +45,9 @@ typedef enum _JASidePanelState {
 @property (nonatomic, strong) UIViewController *centerPanel; // required
 @property (nonatomic, strong) UIViewController *rightPanel;  // optional
 
+- (void)registerContainerViewControllerClass:(Class)containerViewControllerClass;
+- (void)unregisterContainerViewControllerClass:(Class)containerViewControllerClass;
+
 // show the panels
 - (void)showLeftPanel:(BOOL)animated __attribute__((deprecated("Use -showLeftPanelAnimated: instead")));
 - (void)showRightPanel:(BOOL)animated __attribute__((deprecated("Use -showRightPanelAnimated: instead")));
